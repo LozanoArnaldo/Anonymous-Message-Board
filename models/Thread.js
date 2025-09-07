@@ -1,16 +1,21 @@
-const replySchema = new mongoose.Schema({
-  text: String,
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
+
+const replySchema = new Schema({
+  text: { type: String, required: true },
   created_on: { type: Date, default: Date.now },
-  delete_password: String,
+  delete_password: { type: String, required: true },
   reported: { type: Boolean, default: false }
 });
 
-const threadSchema = new mongoose.Schema({
-  board: String,
-  text: String,
+const threadSchema = new Schema({
+  board: { type: String, required: true },
+  text: { type: String, required: true },
   created_on: { type: Date, default: Date.now },
   bumped_on: { type: Date, default: Date.now },
   reported: { type: Boolean, default: false },
-  delete_password: String,
+  delete_password: { type: String, required: true },
   replies: [replySchema]
 });
+
+module.exports = mongoose.model('Thread', threadSchema);
