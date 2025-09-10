@@ -86,8 +86,6 @@ app.use(function(req, res, next) {
 
 //Start our server and tests after DB connection!
 async function startServer() {
-  await connectToDatabase();
-  
   const listener = app.listen(process.env.PORT || 5000, function () {
     console.log('Your app is listening on port ' + listener.address().port);
     if(process.env.NODE_ENV==='test') {
@@ -102,8 +100,16 @@ async function startServer() {
       }, 1500);
     }
   });
+  
+  return listener;
 }
 
-startServer().catch(console.error);
+// Always connect to database
+connectToDatabase().then(() => {
+  // Only start server if not being required by tests
+  if (require.main === module) {
+    startServer().catch(console.error);
+  }
+}).catch(console.error);
 
 module.exports = app; //for testing
