@@ -45,8 +45,12 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true, 
   useUnifiedTopology: true 
 })
-.then(() => console.log("MongoDB conectado"))
-.catch(err => console.error(err));
+.then(() => console.log("MongoDB connected successfully"))
+.catch(err => {
+  console.error("MongoDB connection error:", err.message);
+  console.log("Please check your MongoDB Atlas IP whitelist settings");
+  console.log("Visit: https://www.mongodb.com/docs/atlas/security-whitelist/");
+});
 
 
 //For FCC testing purposes
