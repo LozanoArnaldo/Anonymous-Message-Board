@@ -40,18 +40,36 @@ app.route('/')
   });
 
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
-mongoose.connect(process.env.MONGO_URI, { 
-  useNewUrlParser: true, 
-  useUnifiedTopology: true 
-})
-.then(() => console.log("MongoDB connected successfully"))
-.catch(err => {
-  console.error("MongoDB connection error:", err.message);
-  console.log("Please check your MongoDB Atlas IP whitelist settings");
-  console.log("Visit: https://www.mongodb.com/docs/atlas/security-whitelist/");
-});
-
+async function connectToDatabase() {
+  // Try Atlas first if available, fallback to in-memory database
+  if (process.env.MONGO_URI && process.env.NODE_ENV !== 'test') {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 5000
+      });
+      console.log("MongoDB Atlas connected successfully");
+      return;
+    } catch (err) {
+      console.warn("MongoDB Atlas connection failed, falling back to in-memory database");
+      console.log("Atlas error:", err.message);
+    }
+  }
+  
+  // Use in-memory MongoDB (for testing or as fallback)
+  try {
+    const mongod = await MongoMemoryServer.create();
+    const mongoUri = mongod.getUri();
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log("In-memory MongoDB connected successfully");
+  } catch (err) {
+    console.error("Failed to connect to any database:", err.message);
+    process.exit(1);
+  }
+}
 
 //For FCC testing purposes
 fccTestingRoutes(app);
@@ -66,20 +84,26 @@ app.use(function(req, res, next) {
     .send('Not Found');
 });
 
-//Start our server and tests!
-const listener = app.listen(process.env.PORT || 5000, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
-  if(process.env.NODE_ENV==='test') {
-    console.log('Running Tests...');
-    setTimeout(function () {
-      try {
-        runner.run();
-      } catch(e) {
-        console.log('Tests are not valid:');
-        console.error(e);
-      }
-    }, 1500);
-  }
-});
+//Start our server and tests after DB connection!
+async function startServer() {
+  await connectToDatabase();
+  
+  const listener = app.listen(process.env.PORT || 5000, function () {
+    console.log('Your app is listening on port ' + listener.address().port);
+    if(process.env.NODE_ENV==='test') {
+      console.log('Running Tests...');
+      setTimeout(function () {
+        try {
+          runner.run();
+        } catch(e) {
+          console.log('Tests are not valid:');
+          console.error(e);
+        }
+      }, 1500);
+    }
+  });
+}
+
+startServer().catch(console.error);
 
 module.exports = app; //for testing
